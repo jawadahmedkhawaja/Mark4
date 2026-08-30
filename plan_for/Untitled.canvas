@@ -1,0 +1,21 @@
+{
+	"nodes":[
+		{"id":"7e65c927865791f1","x":-760,"y":-131,"width":250,"height":60,"type":"text","text":"COLLECTOR"},
+		{"id":"0b42da2bd60f17d3","x":-440,"y":-191,"width":250,"height":60,"type":"text","text":"CODER"},
+		{"id":"6108fddeb4b91815","x":-120,"y":-131,"width":250,"height":60,"type":"text","text":"DESIGNER"},
+		{"id":"bf3557d444a676bf","x":200,"y":-191,"width":250,"height":60,"type":"text","text":"TESTER"},
+		{"id":"933ea0264b5b7863","x":450,"y":-101,"width":250,"height":60,"type":"text","text":"DEPLOYER"},
+		{"id":"c685d93101fc0ceb","x":-120,"y":-480,"width":250,"height":60,"type":"text","text":"ORCHESTRATOR"},
+		{"id":"e4d63a5c4273a5c1","x":-760,"y":40,"width":250,"height":288,"type":"text","text":"1. It will collect requirements\n2. Prepare functional requirements\n3. Prepare Non-Functional Requirements"},
+		{"id":"e585953197824d87","type":"text","text":"1. It will design the system for the project.\n2. It will Prepare HLD\n3. It will prepare LLD","x":-120,"y":40,"width":250,"height":288}
+	],
+	"edges":[
+		{"id":"a6eab67206e19e24","fromNode":"c685d93101fc0ceb","fromSide":"bottom","toNode":"7e65c927865791f1","toSide":"top"},
+		{"id":"83b1b6d6daba8036","fromNode":"c685d93101fc0ceb","fromSide":"bottom","toNode":"0b42da2bd60f17d3","toSide":"top"},
+		{"id":"d1dee9827269004f","fromNode":"c685d93101fc0ceb","fromSide":"bottom","toNode":"6108fddeb4b91815","toSide":"top"},
+		{"id":"4a96ac497b384570","fromNode":"c685d93101fc0ceb","fromSide":"bottom","toNode":"bf3557d444a676bf","toSide":"top"},
+		{"id":"d15da4934b1b5965","fromNode":"c685d93101fc0ceb","fromSide":"bottom","toNode":"933ea0264b5b7863","toSide":"top"},
+		{"id":"6eb7d8438600bdbd","fromNode":"7e65c927865791f1","fromSide":"bottom","toNode":"e4d63a5c4273a5c1","toSide":"top"},
+		{"id":"e288a039774ffaae","fromNode":"6108fddeb4b91815","fromSide":"bottom","toNode":"e585953197824d87","toSide":"top"}
+	]
+}

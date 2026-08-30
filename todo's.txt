@@ -1,0 +1,8 @@
+Add API KEY's in .env
+Add MODEL NAME in .env
+Add following util:
+    "CODE OPTIMIZER",
+    "DEBUGGER",
+    "CYBER CHECKER",
+    "GIT PUSHER",
+    "GIT ACTIONS CHECKER"

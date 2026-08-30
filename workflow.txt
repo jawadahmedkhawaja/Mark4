@@ -1,0 +1,46 @@
+               GET REQUEST
+                    |
+                    v
+            GENERATE QUESTIONS
+                    |
+                    v
+             ASK QUESTIONS
+                    |
+                    v
+             COLLECT ANSWERS
+                    |
+                    v
+        PREPARE REQUIREMENTS (FR AND NFR)
+                    |
+                    v
+              PREPARE HLD
+                    |
+                    v
+              PREPARE LLD
+                    |
+                    v
+              FIND ENTITIES
+                    |
+                    v
+            PREPARE DB SCHEMA
+                    |
+                    v
+            PREPARE API DESIGN
+                    |
+                    v
+            PREPARE CI/CD YAML
+                    |
+                    v
+START CODING (CODE, DEBUG, OPTIMIZE, DEBUG, SECURE, GIT PUSH, GIT CI/CD)
+                    |
+                    v
+                  BUILD
+                    |
+                    v
+                   TEST
+                    |
+                    v
+                 RELEASE
+                    |
+                    v
+                 DEPLOY
