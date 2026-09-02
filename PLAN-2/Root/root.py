@@ -1,30 +1,42 @@
+# ==============================================================================
+#                      MARK4 AI SOFTWARE ENGINEERING SUITE
+# ==============================================================================
+# Module: PLAN-2 / Meta-Agent Dynamic Architecture (Root)
+# Description: Defines meta-models and configuration structures for dynamically 
+#              instantiating specialized AI agents (Coders, Designers, Debuggers, Testers).
+# ==============================================================================
+
 """
--> a model to create a model (for particular task) args: model_name | ---> MODEL_OBJECT
--> a util to create file args: path, filename | ---> filePath
--> a util to create folder args: foldername | ---> folderPath
--> a util to write in file args: filename, content to write in file | ---> filePath
--> a util to create tools args: docstring for tool, arguments for tool along with their type | ---> TOOL_OBJECT
--> a util to run cmd commands and get the output args: command | ---> ouput of the command
+PLAN-2 Meta-Agent Root Specifications.
+
+Provides Pydantic models for dynamic sub-agent creation, including:
+- Specification of agent roles, responsibilities, and system prompts.
+- Utility contracts for workspace file generation, directory creation, tool synthesis, and shell command execution.
 """
 
-# =====================================================
-# ==================== IMPORTS ========================
-# =====================================================
-
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
-# =====================================================
-# ==================== MODELS =========================
-# =====================================================
 
+# ==============================================================================
+#                             META-AGENT MODELS
+# ==============================================================================
 
-# Node Structure
 class TaskModel(BaseModel):
-    """It is model for creating AI MODEL for specific tasks, like for coding we can create a model called CODER"""
+    """
+    Pydantic schema representing a dynamic AI sub-agent definition.
+    
+    Used by the Meta-Orchestrator to instantiate domain-specific agents with custom system prompts
+    and operational boundaries.
+    """
 
-    modelName: str = Field(description="Contains the name of model")
+    modelName: str = Field(
+        ...,
+        description="Unique identifier or name for the sub-agent (e.g., 'BackendCoder', 'DBArchitect')."
+    )
     role: str = Field(
-        description="Tells the role of model",
+        ...,
+        description="Specific engineering role assigned to the AI model.",
         examples=[
             "CODER",
             "PLANNER",
@@ -38,8 +50,18 @@ class TaskModel(BaseModel):
             "TESTER",
         ],
     )
-    modelWork: str = Field(description="Tells what model will do")
-    
+    modelWork: str = Field(
+        ...,
+        description="Detailed description of primary duties, task domain, and expected deliverables."
+    )
+    systemPrompt: Optional[str] = Field(
+        default=None,
+        description="Custom system prompt guiding agent behavior and operational rules."
+    )
+
 
 class Root:
+    """
+    Root controller class for managing multi-agent PLAN-2 lifecycle events.
+    """
     pass

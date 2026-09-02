@@ -1,147 +1,261 @@
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# ------------------------ REQUIREMENTS COLLECTOR ---------------------------
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
+# ==============================================================================
+#                      MARK4 AI SOFTWARE ENGINEERING SUITE
+# ==============================================================================
+# Module: Collector / Requirements Gathering Agent & Tools
+# Description: Interactively clarifies user software requests, generates Q&A options,
+#              extracts functional and non-functional requirements, and determines tech stacks.
+# ==============================================================================
 
-# ================================ IMPORTS  ==================================
-from langchain.chat_models import init_chat_model
+"""
+Collector Module for Mark4 AI SWE Framework.
+
+Provides Pydantic schemas and LangChain tools for:
+- Asking interactive clarification questions to users.
+- Generating Functional & Non-Functional Software Requirements.
+- Analyzing technical requirements to infer project details and tech stacks.
+"""
+
+from typing import Any, Dict, List
 from pydantic import BaseModel, Field
 from langchain.tools import tool
-from os import getenv
-from Utils.utils import Utils
+from Utils.utils import callModel
 
+
+# ==============================================================================
+#                             PYDANTIC SCHEMAS
+# ==============================================================================
 
 class Question(BaseModel):
+    """
+    Schema for a single clarifying question presented to the user.
+    """
     question: str = Field(
-        description="Question you should ask to the user to clarify the Requiremetns for the software."
+        ...,
+        description="The clarification question to ask the user regarding system scope, features, or constraints."
     )
-    answer_options_for_question: list[str] = Field(
-        description="answer options for the question to ask the user. It can be none, as We can ask the user a question and user can provide the answer by themselves."
+    answer_options_for_question: List[str] = Field(
+        default_factory=list,
+        description="List of suggested multiple-choice answer options for the user to choose from. Can be empty."
     )
     default_answer: str = Field(
-        description="Default answer for the question. Used in case when user haven't answered to the question."
+        ...,
+        description="Recommended fallback answer to use if the user skips or provides empty input."
     )
 
 
 class Questions(BaseModel):
-    questions: list[Question] = Field(
-        description="List of questions to ask from the user to clarify the requirements."
+    """
+    Schema containing a structured list of clarifying questions.
+    """
+    questions: List[Question] = Field(
+        default_factory=list,
+        description="A targeted list of clarification questions generated to resolve ambiguities in software requirements."
     )
 
 
 class Requirements(BaseModel):
-    functionalRequirements: list[str] = Field(
-        description="Functional requirements list."
+    """
+    Schema containing structured Functional and Non-Functional software requirements.
+    """
+    functionalRequirements: List[str] = Field(
+        default_factory=list,
+        description="Detailed list of specific system capabilities, user features, and operational behaviors."
     )
-    nonFunctionalRequirements: list[str] = Field(
-        description="Non-Functional requirements list."
+    nonFunctionalRequirements: List[str] = Field(
+        default_factory=list,
+        description="Detailed list of system performance, security, availability, scalability, and compliance specifications."
     )
 
 
 class ProjectDetails(BaseModel):
-    name: str = Field(description="name of the project")
+    """
+    Schema containing inferred project metadata and technical architecture choices.
+    """
+    name: str = Field(
+        ...,
+        description="Appropriate, professional software project name inferred from functional requirements."
+    )
     techStack: str = Field(
-        description="tells the teck stack that will use for developing the project."
+        ...,
+        description="Recommended technology stack (e.g., Python/FastAPI/PostgreSQL, Node.js/React/MongoDB, etc.)."
     )
 
 
-# ===================================
-# -----------------------------------
-# ----------- MAIN CLASS ------------
-# -----------------------------------
-# ===================================
+# ==============================================================================
+#                               HELPER ROUTINES
+# ==============================================================================
+
+def generateQuestions(user_request: str) -> Dict[str, str]:
+    """
+    Generate targeted requirement clarification questions, prompt the user for responses,
+    and map user choices back to key requirements.
+
+    Parameters
+    ----------
+    user_request : str
+        The initial software request string submitted by the user.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary mapping each generated question to the corresponding answer selected or provided by the user.
+    """
+    print("\n[MARK4 COLLECTOR] Analyzing project scope and generating clarification questions...")
+
+    prompt = f"""
+You are an Principal Business Analyst & Software Architect with 25+ years of software consulting experience.
+
+Task:
+Analyze the following user software request and generate 3 to 5 critical clarification questions to resolve ambiguities regarding core features, data constraints, user roles, and scale.
+
+User Request: "{user_request}"
+
+Instructions:
+- Formulate clear, concise questions.
+- Provide 3 realistic multiple-choice options per question when applicable.
+- Specify a sensible default answer for each question if the user skips it.
+"""
+
+    structured_questions: Questions = callModel(
+        structuredOutputModel=Questions,
+        prompt=prompt
+    )
+
+    questions_with_answers: Dict[str, str] = {}
+
+    if not structured_questions or not structured_questions.questions:
+        print("[MARK4 COLLECTOR] No explicit clarification questions required. Proceeding...")
+        return questions_with_answers
+
+    print("\n" + "=" * 60)
+    print("           REQUIREMENT CLARIFICATION QUESTIONNAIRE")
+    print("=" * 60)
+
+    for idx, q in enumerate(structured_questions.questions, 1):
+        print(f"\nQuestion {idx}: {q.question}")
+        options = q.answer_options_for_question
+
+        if options:
+            print("Options:")
+            for opt_idx, opt in enumerate(options):
+                print(f"  [{opt_idx}] {opt}")
+            print(f"  (Default: '{q.default_answer}')")
+
+        user_input = input("\nEnter option number, custom text, or press Enter for default: ").strip()
+
+        if not user_input:
+            questions_with_answers[q.question] = q.default_answer
+            print(f"-> Selected Default: {q.default_answer}")
+        elif user_input.isdigit() and options and 0 <= int(user_input) < len(options):
+            selected_option = options[int(user_input)]
+            questions_with_answers[q.question] = selected_option
+            print(f"-> Selected: {selected_option}")
+        else:
+            questions_with_answers[q.question] = user_input
+            print(f"-> Custom Response Saved: {user_input}")
+
+    print("=" * 60 + "\n")
+    return questions_with_answers
 
 
-class Collector:
+# ==============================================================================
+#                               LANGCHAIN TOOLS
+# ==============================================================================
 
-    # Constructor
-    def __init__(self):
-        self.details = ""
+@tool
+def findProjectDetials(functionalRequirements: List[str]) -> Dict[str, Any]:
+    """
+    Analyze functional requirements to suggest an optimal project name and technology stack.
 
-    @tool
-    def findProjectDetials(cls, functionalRequirements: list[str]) -> dict:
-        """It finds the project name using functional requirements. It will return the project detail in dictionary."""
-        print("Finding Project Detials...")
-        projectDetails = Utils().callModel(
-            structuredOutputModel=ProjectDetails,
-            prompt=f"""You are an experienced software engineer, you have to find the best suitable project details using functional requirements provided below. Functional Requirements: {functionalRequirements} """,
-        )
+    Parameters
+    ----------
+    functionalRequirements : List[str]
+        List of functional requirement specifications for the software product.
 
-        return projectDetails
+    Returns
+    -------
+    Dict[str, Any]
+        Dictionary containing 'name' (Project Name) and 'techStack' (Recommended Tech Stack).
+    """
+    print("\n[MARK4 COLLECTOR] Evaluating optimal project architecture and technology stack...")
 
-    # Function to start collecting
-    @tool
-    def collect(self, requestByUser: str) -> dict[str:list]:
-        """
-        It collects requirements for the given project requested by the user.
-        It will prepare Functional and Non-Functional Requirements.
-        It will return dict of Functional and Non-Functional Requirements.
-        """
-        print("Collecting Requirements...")
-        self.details = requestByUser
+    prompt = f"""
+You are a Lead Software Architect.
+Analyze the functional requirements provided below and recommend:
+1. A concise, professional project name.
+2. An industry-standard, production-grade tech stack best suited for these requirements.
 
-        # Generating Questions
-        questionWithAnswers = self.generateQuestions()
+Functional Requirements:
+{functionalRequirements}
+"""
 
-        # Creating model with Structured Questions Model
-        newModel = self.model.with_structured_output(Requirements)
+    project_details: ProjectDetails = callModel(
+        structuredOutputModel=ProjectDetails,
+        prompt=prompt
+    )
 
-        # Running model
-        requirements = Utils().callModel(
-            structuredOutputModel=Requirements,
-            prompt=f"""
-        You are an expert Product Manager or Business Analyst with a experience of 50 years. You are provided with the user request for a particular software and some questions asked to the user (for requirements clarfication) along with the answers to them.
-        User Request: {self.details}
-        Questions and Answers: {questionWithAnswers}.
-        You have to do thorough research and prepare Functional and Non-Functional Requirements for the product request by the user.""",
-        )
+    result = {
+        "name": project_details.name if project_details else "SoftwareProject",
+        "techStack": project_details.techStack if project_details else "Python / FastAPI / PostgreSQL"
+    }
+    print(f"[MARK4 COLLECTOR] Identified Project: {result['name']} | Tech Stack: {result['techStack']}")
+    return result
 
-        # ========================= Spliting Requirements ====================================
-        functionalRequirements = requirements["functionalRequirements"]
-        print(f"Functional Requirements Generated:\n{functionalRequirements}\n")
-        nonFunctionalRequirements = requirements["nonFunctionalRequirements"]
-        print(f"Non-Functional Requirements Generated:\n{nonFunctionalRequirements}\n")
 
-        return {
-            "functionalRequirements": functionalRequirements,
-            "nonFunctionalRequirements": nonFunctionalRequirements,
-        }
+@tool
+def collect(requestByUser: str) -> Dict[str, List[str]]:
+    """
+    Collect, clarify, and formulate detailed Functional and Non-Functional Requirements for a user project request.
 
-    # Question Generator
-    def generateQuestions(self) -> dict:
-        """Function to generate questions to ask from the user to clarify the requirements for the software user wants. It will return a dict of questions along with user answers to the questions."""
-        print("Generating Questions...")
-        # Getting Questions
-        q = Utils().callModel(
-            structuredOutputModel=Questions,
-            prompt=f"""
-You are an expert Product Manager or Business Analyst with a experience of 15 years.
-You have to generate questions from the details provided by the user to clarify the requirements for the software user wants.
-Do thorough research and prepare questions well.
-Detail Provided by the user: {self.details}.""",
-        )
+    Parameters
+    ----------
+    requestByUser : str
+        The raw request or description of the software application requested by the user.
 
-        questionsWithUserAnswersBinding = {}
-        for question in q:
-            print(f"Question: {question.question}")
-            print(f"==================Answers=============")
-            for i in range(len(question.answers_to_the_question)):
-                print(f"{i}. {question.answers_to_the_question[i]}")
-            answer = input("Enter options or press enter for default...\n")
-            if len(answer) == 0:
-                questionsWithUserAnswersBinding[question.question] = (
-                    question.default_answer
-                )
-            elif answer.isdecimal():
-                questionsWithUserAnswersBinding[question.question] = (
-                    question.answers_to_the_question[int(answer)]
-                )
-            else:
-                questionsWithUserAnswersBinding[question.question] = (
-                    question.default_answer
-                )
+    Returns
+    -------
+    Dict[str, List[str]]
+        A dictionary containing two keys:
+        - 'functionalRequirements': List of functional system behaviors and user features.
+        - 'nonFunctionalRequirements': List of quality attributes (performance, security, scalability, maintenance).
+    """
+    print(f"\n[MARK4 COLLECTOR] Starting Requirements Gathering Process for: '{requestByUser}'...")
 
-            return questionsWithUserAnswersBinding
+    # Step 1: Conduct interactive clarification Q&A session
+    clarifications = generateQuestions(requestByUser)
+
+    # Step 2: Generate comprehensive SRS (Software Requirements Specification) via LLM
+    prompt = f"""
+You are an expert Chief Product Officer & Senior Business Analyst with 25+ years of experience.
+
+Task:
+Transform the raw user request and clarified Q&A responses into a structured Software Requirements Specification (SRS).
+
+Input Details:
+- Initial User Request: "{requestByUser}"
+- Clarification Q&A Context: {clarifications}
+
+Guidelines:
+1. Functional Requirements:
+   - Define exhaustive, granular features covering user roles, authentication, data processing, APIs, and workflows.
+   - Each item must be actionable, clear, and testable.
+2. Non-Functional Requirements:
+   - Specify strict standards for performance (response times, latency), security (encryption, auth protocols), scalability, availability, and error handling.
+"""
+
+    requirements_output: Requirements = callModel(
+        structuredOutputModel=Requirements,
+        prompt=prompt
+    )
+
+    func_reqs = requirements_output.functionalRequirements if requirements_output else []
+    non_func_reqs = requirements_output.nonFunctionalRequirements if requirements_output else []
+
+    print(f"\n[MARK4 COLLECTOR] Requirements Gathering Completed!")
+    print(f" -> Functional Requirements ({len(func_reqs)} items)")
+    print(f" -> Non-Functional Requirements ({len(non_func_reqs)} items)\n")
+
+    return {
+        "functionalRequirements": func_reqs,
+        "nonFunctionalRequirements": non_func_reqs
+    }
